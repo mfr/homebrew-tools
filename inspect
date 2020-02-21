@@ -5,20 +5,15 @@ if ! git ls-files >& /dev/null; then
   exit 1
 fi
 
-if [ ! $(git rev-parse --show-toplevel) == $(pwd) ]; then
-  echo "Make sure you run this script from the root of the project"
-  exit 1
-fi;
-
 which pip3 >/dev/null 2>&1 || python3 < <(curl -s https://bootstrap.pypa.io/get-pip.py)
 which xml2json >/dev/null 2>&1 || pip3 install xmljson
 which xq >/dev/null 2>&1 || pip3 install xq
 
 rm -Rf /tmp/reports/
 killall studio
-/Applications/Android\ Studio.app/Contents/bin/inspect.sh "." "KTLINT_XML" /tmp/reports/ -v2 -d "."
+/Applications/Android\ Studio.app/Contents/bin/inspect.sh "$PWD" "KTLINT_XML" /tmp/reports/ -v2 -d "."
 
-git -C . whatchanged --name-only --pretty="" origin..HEAD | sort | uniq | while read -r file; do 
+git -C . whatchanged --name-only --pretty="" origin/master..HEAD | sort | uniq | while read -r file; do 
 filename=$(basename -- "$file")
 file=file://\$PROJECT_DIR\$/$file
 cat /tmp/reports/*.xml | xq "//problem/problem_class[not(@severity='TYPO')]/../file[text()='$file']/.." | xml2json | jq '.[]?[].problem| "'$filename'",":",.line," ",.problem_class," ",.description,"\n"' -j 
