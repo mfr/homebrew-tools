@@ -7,7 +7,6 @@ fi
 
 which pip3 >/dev/null 2>&1 || python3 < <(curl -s https://bootstrap.pypa.io/get-pip.py)
 which xml2json >/dev/null 2>&1 || pip3 install xmljson
-which xq >/dev/null 2>&1 || pip3 install xq
 
 rm -Rf /tmp/reports/
 killall studio
@@ -18,5 +17,5 @@ DIR=$(echo $PWD | sed "s/ /\\ /g")
 git -C . whatchanged --name-only --pretty="" origin/master..HEAD | sort | uniq | while read -r file; do 
 filename=$(basename -- "$file")
 file=file://\$PROJECT_DIR\$/$file
-cat /tmp/reports/*.xml | xq "//problem/problem_class[not(@severity='TYPO')]/../file[text()='$file']/.." | xml2json | jq '.[]?[].problem| "'$filename'",":",.line," ",.problem_class," ",.description,"\n"' -j 
+for f in $(grep "$file" /tmp/reports/*.xml -l); do cat $f | xml2json | jq '.[][] | select(.problem_class? != "Typo") | select(.file? == "'$file'") | "'$filename'",":",.line," ",.problem_class," ",.description,"\n"' -j; done
 done;
